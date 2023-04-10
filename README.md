@@ -39,18 +39,22 @@ Open questions:
 
 Create a manually executable pipeline. 
 
-- Configure google cloud account ~ 1 hour
+- Configure google cloud account ~ 1 hour [x]
+- Write script that downloads, transforms and uploads to BG ~ 3-4 hours [x]
+- Try to convert data point to geometry ~ 1 hour [x]
+- Create query for a specific point in time ~ 1 hour [x]
+- Fix basic visualization ~ 1 hour [x]
 
-- Write script that downloads, transforms and uploads to BG ~ 3-4 hours
-- Create query for a specific point in time ~ 1 hour
-- Configure looker to visualize the dat and do qa ~ 2 hour
+- Spark vs dbt? choose how to process the data and what to show in the dashboard. Include unit tests. 10 hours []
 
-- Create a prefect workflow ~ 3 hours
-- Configure virtual machine in GC that runs prefect and test it ~ 3 hours
-- Spark vs dbt? choose how to process the data and what too show in the dashboard. Include unit tests. 10 hours
+Spark can work either on the raw data in the data lake or directly interact with BigQuery. It requires to spin-up a cluster for computations. On the other hand, dbt uses the query engine of the data warehouse, Bigquery in this case. 
 
-- Refine all the above steps ~ 5 hours
-- Write documentation ~ 2 hour
+- Create a prefect workflow ~ 3 hours []
+- Configure virtual machine in GC that runs prefect and test it ~ 3 hours []
+- Configure looker to visualize the data and do qa ~ 2 hour []
+
+- Refine all the above steps ~ 5 hours []
+- Write documentation ~ 2 hour []
 
 
 

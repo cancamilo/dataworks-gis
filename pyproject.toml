@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "data-playground"
+name = "dataworks-gis"
 version = "0.1.0"
 description = ""
 authors = ["Camilo Ramirez <camilo.ramirez@onlyfy.com>"]
 readme = "README.md"
-packages = [{include = "data_playground"}]
+packages = [{include = "dataworks-gis"}]
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.12"
@@ -24,6 +24,10 @@ aiohttp = "^3.8.4"
 zarr = "^2.14.2"
 scipy = "^1.10.1"
 pympler = "^1.0.1"
+shapely = "^2.0.1"
+prefect = "2.7.7"
+prefect-gcp = {version = "0.2.4", extras = ["cloud_storage"]}
+pandas-gbq = "^0.19.1"
 
 
 [build-system]
