@@ -12,18 +12,18 @@ from prefect_gcp.bigquery import BigQueryWarehouse
 
 
 default_cols = ['lon', 'lat', 'time']
+
 geo_cols = ['T2M', 'T10M', # temperature
             'WS2M', 'WS10M', # wind speed
             'PRECTOTCORR', # precipitations
             'RH2M', # relative humidity
             'CDD0', 'CDD10'] # days above temp
 
-flux_cols = ['lon', 'lat', 'time',
-            'TOA_SW_DWN', # total solar irradiance on top of atmosphere. Shortwave downward.
-            'CLRSKY_SFC_LW_DWN', # termal infrarred irradiance under clear sky conditions. Longwave downward 
-            'ALLSKY_SFC_LW_DWN', # termal infrarred irradiance under all sky conditions. Longwave downward 
-            'CLRSKY_SFC_SW_DWN', # termal infrarred irradiance under clear sky conditions. Shortwave downward 
-            'ALLSKY_SFC_SW_DWN'] # termal infrarred irradiance under all sky conditions. Shortwave downward
+flux_cols = ['TOA_SW_DWN', # total solar irradiance on top of atmosphere. Shortwave downward.
+             'CLRSKY_SFC_LW_DWN', # termal infrarred irradiance under clear sky conditions. Longwave downward 
+             'ALLSKY_SFC_LW_DWN', # termal infrarred irradiance under all sky conditions. Longwave downward 
+             'CLRSKY_SFC_SW_DWN', # termal infrarred irradiance under clear sky conditions. Shortwave downward 
+             'ALLSKY_SFC_SW_DWN'] # termal infrarred irradiance under all sky conditions. Shortwave downward
 
 
 url_geos = "https://power-datastore.s3.amazonaws.com/v9/daily/{year}/{month:02}/power_901_daily_{datetime}_geos5124_utc.nc"
@@ -35,7 +35,7 @@ class DataType:
     FLUX = "flux" # string to identify data from fluxflash system (solar irradiance data)
 
 @task()
-def extract_data(ts: pd.Timestamp, type: str) -> pd.DataFrame:        
+def extract_data(ts: pd.Timestamp, type: str) -> pd.DataFrame:
     year = ts.year
     month = ts.month
     day = ts.day
@@ -44,14 +44,17 @@ def extract_data(ts: pd.Timestamp, type: str) -> pd.DataFrame:
     url = url_geos if type == DataType.GEOS else url_flux        
     url = url.format(year=year, month=month, datetime=datetime)
 
-    os.system(f"wget -O {type}.nc {url}")    
+    os.system(f"wget -O {type}.nc {url}")
     return xr.open_dataset(f'{type}.nc').to_dataframe().reset_index()    
-    
+
 
 @task()
 def transform_data(df: pd.DataFrame, select_cols) -> pd.DataFrame:
     
     df["GEO_ID"] = df.index
+
+    # add dt to make quering by partition easier. Truncating to month.
+    df["dt"] = df['time'].dt.strftime('%Y-%m-01')
     df = df[default_cols + select_cols]
 
     # if neccesary, transform data types to strings to avoid failures when creating tables from parquet
@@ -59,6 +62,7 @@ def transform_data(df: pd.DataFrame, select_cols) -> pd.DataFrame:
     #     df[col] = df[col].astype(str)
 
     return df
+
 
 @task()
 def write_local(df: pd.DataFrame, type: str):
@@ -80,24 +84,16 @@ def write_to_gcs(type: str, dt: pd.Timestamp):
     gcs_block.upload_from_path(from_path=source_path, to_path=target_path)
 
 @task
-def write_bq(df: pd.DataFrame) -> None:
-    gcp_credentials_block = GcpCredentials.load("gcp-credentials")
-    table_id = "dataworks-gis.test_gis.geos_table"
+def write_to_bq(df: pd.DataFrame, table_id: str) -> None:
+    gcp_credentials_block = GcpCredentials.load("gcp-credentials")    
 
     df.to_gbq(
         destination_table=table_id,
         project_id="dataworks-gis",
         credentials=gcp_credentials_block.get_credentials_from_service_account(),
         chunksize=500_000,
-        if_exists="append",        
+        if_exists="append"        
     )
-
-@flow(log_prints=True)
-def run_data_range_flow(start_date, end_date):
-    for dat in pd.date_range(start_date, end_date):
-        df = extract_data(dat)
-        print(f"dt={dat} shape={df.shape}")
-        exec_query(df)
 
 @flow(log_prints=True)
 def upload_cities():
@@ -113,22 +109,24 @@ def upload_cities():
         project_id="dataworks-gis",
         credentials=gcp_credentials_block.get_credentials_from_service_account(),
         chunksize=500_000,
-        if_exists="append",        
+        if_exists="append"        
     )
 
 
 @flow(log_prints=True)
 def initialize_tables():
-    pass
-    # cols = ",".join("st_geogfromtext(COORDS, make_valid => TRUE) as COORDS" if col == "COORDS" else col for col in df_flat)
-    # query = f"CREATE OR REPLACE TABLE {table_id} AS SELECT {cols} FROM {table_id}"
-    # print(query)
-    # with BigQueryWarehouse.load("bq-block") as warehouse:        
-    #     warehouse.execute(query)
+    with open("queries/geos_table_creation.sql") as file:
+        geo_script = file.read()
+
+    with open("queries/flux_table_creation.sql") as file:
+        flux_script = file.read()
     
+    with BigQueryWarehouse.load("bq-block") as warehouse:        
+        warehouse.execute(geo_script)
+        warehouse.execute(flux_script)
 
 @flow(log_prints=True)
-def run_geos_flow(date):
+def run_geos_flow(date: pd.Timestamp):
     """run the pipeline for only one day. the date should be formatted as '%Y-%m-%d':    
     """
     data_type = DataType.GEOS
@@ -138,23 +136,46 @@ def run_geos_flow(date):
 
     write_local(tf_geos_df, data_type)
     write_to_gcs(data_type, ts)
+
+    bq_table_id = "dataworks-gis.test_gis.geos_table_partitioned"                                        
+    write_to_bq(tf_geos_df, bq_table_id)
+
+@flow(log_prints=True)
+def run_flux_flow(date: pd.Timestamp):
+    """run the pipeline for only one day. the date should be formatted as '%Y-%m-%d':    
+    """
+    data_type = DataType.FLUX    
+    flux_df = extract_data(date, data_type)
+    tf_flux_df = transform_data(flux_df, select_cols=flux_cols)
+
+    write_local(tf_flux_df, data_type)
+    write_to_gcs(data_type, date)
+
+    bq_table_id = "dataworks-gis.test_gis.flux_table_partitioned"
+    write_to_bq(tf_flux_df, bq_table_id)
     
 
+@flow(log_prints=True)
+def run_data_range_flow(start_date, end_date):
+    for dat in pd.date_range(start_date, end_date):
+        run_flux_flow(dat)
+        run_geos_flow(dat)
+        
+
 if __name__ == "__main__":
-    # downloads
-    # dt = "2022-05-08"
 
-    # month = "0" + str(i + 1)
-    # month = month[-2:]
+    ## excecute first time for creating partitioned tables
+    # initialize_tables()
 
-    # url = f"https://power-datastore.s3.amazonaws.com/v9/hourly/2022/{month}/power_901_hourly_{datetime}_ceres_utc.nc"
-    # !wget -O latest.nc {url}
-
-
-    # start = "2022-05-08"
-    # end = "2022-05-12"
-    # run_data_range_flow(start, end)
+    ## upload city data to bq. Only needed once.
     # upload_cities()
 
-    dt = "2023-04-01"
-    run_geos_flow(dt)
+    ## run single flow
+    # dt = "2022-05-08"
+    # ts = pd.to_datetime(dt, format='%Y-%m-%d')
+    # run_flux_flow(ts)
+
+    start = "2022-08-15"
+    end = "2022-08-20"    
+    run_data_range_flow(start, end)
+    

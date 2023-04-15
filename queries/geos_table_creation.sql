@@ -1,4 +1,4 @@
-CREATE TABLE `dataworks-gis.test_gis.geo_table_partitioned`
+CREATE TABLE `dataworks-gis.test_gis.geos_table_partitioned`
 (
   lon FLOAT64,
   lat FLOAT64,
@@ -12,4 +12,4 @@ CREATE TABLE `dataworks-gis.test_gis.geo_table_partitioned`
   CDD0 FLOAT64,
   CDD10 FLOAT64
 )
-PARTITION BY DATE(time);
+PARTITION BY TIMESTAMP_TRUNC(time, MONTH);
