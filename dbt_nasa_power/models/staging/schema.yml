@@ -23,6 +23,11 @@ models:
       - name: city_coords
       - name: GEO_ID
         description: Unique identifier of data point
+        tests:
+            - unique:
+                severity: warn
+            - not_null:
+                severrity: warn
       - name: TOA_SW_DWN
         description: Total solar irradiance on top of atmosphere. Shortwave downward.
       - name: CLRSKY_SFC_LW_DWN
@@ -48,6 +53,11 @@ models:
       - name: city_coords
       - name: GEO_ID
         description: Unique identifier of data point
+        tests:
+            - unique:
+                severity: warn
+            - not_null:
+                severrity: warn
       - name: T2M_CELCIUS
         description: Temperature at 2 meters in Celcius degrees
       - name: T10M_CELCIUS
