@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from shapely.geometry import Point 
+from shapely.geometry import Point
 import xarray as xr
 from prefect_gcp import GcpCredentials
 from prefect_gcp.cloud_storage import GcsBucket

@@ -1,2 +1,2 @@
 *.nc
-*.parquet
+/data/*
