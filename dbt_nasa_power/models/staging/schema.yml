@@ -1,0 +1,75 @@
+version: 2
+
+sources:
+    - name: staging
+      database: dataworks-gis
+      schema: test_gis
+
+      tables:
+          - name: flux_table_partitioned
+          - name: geos_table_partitioned
+          - name: cities
+
+models:
+  - name: stg_city_flux
+    description: > 
+      Cities with solar irradiance data
+    columns:
+      - name: city_id
+      - name: city_name
+      - name: city_ascii
+      - name: country
+      - name: population
+      - name: city_coords
+      - name: GEO_ID
+        description: Unique identifier of data point
+        tests:
+            - unique:
+                severity: warn
+            - not_null:
+                severrity: warn
+      - name: TOA_SW_DWN
+        description: Total solar irradiance on top of atmosphere. Shortwave downward.
+      - name: CLRSKY_SFC_LW_DWN
+        description: Termal infrarred irradiance under clear sky conditions. Longwave downward
+      - name: ALLSKY_SFC_LW_DWN
+        description: Termal infrarred irradiance under all sky conditions. Longwave downward
+      - name: CLRSKY_SFC_SW_DWN
+        description: Termal infrarred irradiance under clear sky conditions. Shortwave downward 
+      - name: ALLSKY_SFC_SW_DWN
+        description: Termal infrarred irradiance under all sky conditions. Shortwave downward
+      - name: metric_coords
+        description: coordinates of the point within 50km of city point
+
+  - name: stg_city_geos
+    description: > 
+      Cities with meteorology data 
+    columns:
+      - name: city_id
+      - name: city_name
+      - name: city_ascii
+      - name: country
+      - name: population
+      - name: city_coords
+      - name: GEO_ID
+        description: Unique identifier of data point
+        tests:
+            - unique:
+                severity: warn
+            - not_null:
+                severrity: warn
+      - name: T2M_CELCIUS
+        description: Temperature at 2 meters in Celcius degrees
+      - name: T10M_CELCIUS
+        description: Temperature at 10 meters in Celcius degrees
+      - name: WS2M
+        description: Windspeed at 2 meters
+      - name: WS10M
+        description: Windspeed at 10 meters
+      - name: PRECTOTCORR
+      - name: RH2M
+      - name: CDD0
+      - name: CDD10
+      - name: metric_coords
+        description: coordinates of the point within 50km of city point
+

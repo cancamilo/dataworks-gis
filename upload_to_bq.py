@@ -1,127 +1,181 @@
+import os
 import numpy as np
 import pandas as pd
+from pathlib import Path
 from shapely.geometry import Point 
 import xarray as xr
 from prefect_gcp import GcpCredentials
+from prefect_gcp.cloud_storage import GcsBucket
 from prefect import flow, task
 
 from prefect_gcp.bigquery import BigQueryWarehouse
 
-import shapely
-import json
-from shapely.validation import make_valid
 
-#determine schema
-type_dict = {
-    'b' : 'BOOLEAN',
-    'i' : 'INTEGER',
-    'f' : 'FLOAT',
-    'O' : 'STRING',
-    'S' : 'STRING',
-    'U' : 'STRING',
-    'M': 'TIMESTAMP'
-}
+default_cols = ['lon', 'lat', 'time']
+
+geo_cols = ['T2M', 'T10M', # temperature
+            'WS2M', 'WS10M', # wind speed
+            'PRECTOTCORR', # precipitations
+            'RH2M', # relative humidity
+            'CDD0', 'CDD10'] # days above temp
+
+flux_cols = ['TOA_SW_DWN', # total solar irradiance on top of atmosphere. Shortwave downward.
+             'CLRSKY_SFC_LW_DWN', # termal infrarred irradiance under clear sky conditions. Longwave downward 
+             'ALLSKY_SFC_LW_DWN', # termal infrarred irradiance under all sky conditions. Longwave downward 
+             'CLRSKY_SFC_SW_DWN', # termal infrarred irradiance under clear sky conditions. Shortwave downward 
+             'ALLSKY_SFC_SW_DWN'] # termal infrarred irradiance under all sky conditions. Shortwave downward
+
+
+url_geos = "https://power-datastore.s3.amazonaws.com/v9/daily/{year}/{month:02}/power_901_daily_{datetime}_geos5124_utc.nc"
+url_flux = "https://power-datastore.s3.amazonaws.com/v9/daily/{year}/{month:02}/power_901_daily_{datetime}_flashflux_lst.nc"
+
+
+class DataType:
+    GEOS = "geos" # string to identify data from geos system (meteorology data)
+    FLUX = "flux" # string to identify data from fluxflash system (solar irradiance data)
 
 @task()
-def write_bq(df: pd.DataFrame) -> None:
-    """Write DataFrame to BiqQuery"""
+def extract_data(ts: pd.Timestamp, type: str) -> pd.DataFrame:
+    year = ts.year
+    month = ts.month
+    day = ts.day
+    datetime = f"{year}{month:02}{day:02}"
 
-    gcp_credentials_block = GcpCredentials.load("gcp-credentials")
-    df_flat = df.reset_index().iloc[:10000] # debug for a few records
+    url = url_geos if type == DataType.GEOS else url_flux        
+    url = url.format(year=year, month=month, datetime=datetime)
 
-    df_flat["GEO_ID"] = df_flat.index
-    df_flat["COORDS"] = df_flat.apply(lambda row: Point(row["lat"], row["lon"]), axis = 1)
-    df_flat["CLRSKY_DAYS"] = df_flat["CLRSKY_DAYS"].astype(str)
+    os.system(f"wget -O {type}.nc {url}")
+    return xr.open_dataset(f'{type}.nc').to_dataframe().reset_index()    
 
-    schema = [
-        {
-            'name' : col_name, 
-            'type' : "GEOGRAPHY" if col_name == "COORDS" else type_dict.get(col_type.kind, 'STRING')
-        } for (col_name, col_type) in df_flat.dtypes.iteritems()
-    ]    
 
-    df_flat["COORDS"] = df_flat.apply(lambda row: Point(row["lat"], row["lon"]), axis = 1)
-    df_flat["CLRSKY_DAYS"] = df_flat["CLRSKY_DAYS"].astype(str)
+@task()
+def transform_data(df: pd.DataFrame, select_cols) -> pd.DataFrame:
+    
+    df["GEO_ID"] = df.index
 
-    # df_json = pd.DataFrame({
-    #     col: (df_flat[col] if col != 'COORDS' else df_flat[col].map(lambda x: json.dumps(shapely.geometry.mapping(make_valid(x)))))
-    #     for col in df_flat
-    # })
+    # add dt to make quering by partition easier. Truncating to month.
+    df["dt"] = df['time'].dt.strftime('%Y-%m-01')
+    df = df[default_cols + select_cols]
 
-    # should replace data for the new day.
-    df_flat.to_gbq(
-        destination_table="dataworks-gis.test_gis.ceres",
+    # if neccesary, transform data types to strings to avoid failures when creating tables from parquet
+    # for col in select_cols:
+    #     df[col] = df[col].astype(str)
+
+    return df
+
+
+@task()
+def write_local(df: pd.DataFrame, type: str):
+    """Write DataFrame out locally as parquet file"""
+    path = Path(f"data/temp_{type}.parquet")
+    print("===============> rows processed" ,len(df))
+    if not os.path.exists(f"data"):
+        os.makedirs("data")
+
+    df.to_parquet(path, compression="gzip")
+    return path
+
+@task
+def write_to_gcs(type: str, dt: pd.Timestamp):
+    gcs_block = GcsBucket.load("gcs-connector")
+    dt_str = dt.strftime('%Y_%m_%d')
+    source_path = f"data/temp_{type}.parquet"
+    target_path = f"{type}/{dt.year}/{dt.month:02}/{type}_{dt_str}.parquet"
+    gcs_block.upload_from_path(from_path=source_path, to_path=target_path)
+
+@task
+def write_to_bq(df: pd.DataFrame, table_id: str) -> None:
+    gcp_credentials_block = GcpCredentials.load("gcp-credentials")    
+
+    df.to_gbq(
+        destination_table=table_id,
         project_id="dataworks-gis",
         credentials=gcp_credentials_block.get_credentials_from_service_account(),
         chunksize=500_000,
-        if_exists="replace",
-        table_schema=schema
+        if_exists="append"        
     )
-
-def exec_query(df: pd.DataFrame) -> None:
-    gcp_credentials_block = GcpCredentials.load("gcp-credentials")
-
-    df_flat = df.reset_index() # .iloc[:10000] # debug for a few records
-
-    selected_cols = ['lon', 'lat', 'time', 'ALLSKY_SFC_PAR_TOT', 'TOA_SW_DWN',
-       'CLRSKY_SRF_ALB', 'GLOBAL_ILLUMINANCE', 'CLOUD_OD',  'SKY_CLEARNESS', 'ALLSKY_KT', 
-       'CLRSKY_SFC_PAR_TOT', 'DIRECT_ILLUMINANCE', 'CLRSKY_SFC_LW_DWN', 
-       'ALLSKY_SFC_UV_INDEX', 'ZENITH_LUMINANCE',
-       'DIFFUSE_ILLUMINANCE', 'ALLSKY_SRF_ALB', 'AIRMASS']
-
-    df_flat = df_flat[selected_cols]  
-
-    # note this should be changed 
-    # if data is appendended to the table. e.g a combination of timestamp with lat and lon
-    df_flat["GEO_ID"] = df_flat.index
-    df_flat["COORDS"] = df_flat.apply(lambda row: Point(row["lon"], row["lat"]).wkt, axis = 1)
-    df_flat["COORDS"] = df_flat["COORDS"].astype(str)
-    # df_flat["CLRSKY_DAYS"] = df_flat["CLRSKY_DAYS"].astype(str)
-
-    # schema = [
-    #     {
-    #         'name' : col_name, 
-    #         'type' : "GEOGRAPHY" if col_name == "COORDS" else type_dict.get(col_type.kind, 'STRING')
-    #     } for (col_name, col_type) in df_flat.dtypes.iteritems()
-    # ]
-
-
-    table_id = "dataworks-gis.test_gis.ceres"
-
-    df_flat.to_gbq(
-        destination_table="dataworks-gis.test_gis.ceres",
-        project_id="dataworks-gis",
-        credentials=gcp_credentials_block.get_credentials_from_service_account(),
-        chunksize=500_000,
-        if_exists="replace",
-        #table_schema=schema
-    )
-
-    # cols = ",".join("st_geogfromtext(COORDS, make_valid => TRUE) as COORDS" if col == "COORDS" else col for col in df_flat)
-    # query = f"CREATE OR REPLACE TABLE {table_id} AS SELECT {cols} FROM {table_id}"
-
-    # print(query)
-
-    # with BigQueryWarehouse.load("bq-block") as warehouse:        
-    #     warehouse.execute(query)
 
 @flow(log_prints=True)
-def run_flow():
-    ds = xr.open_dataset('latest.nc')
-    df = ds.to_dataframe()
-    exec_query(df)
+def upload_cities():
+    gcp_credentials_block = GcpCredentials.load("gcp-credentials")
+
+    cities_df = pd.read_csv("worldcities.csv", sep=",")
+    cities_df["GEO_ID"] = cities_df.index
+    cities_df["COORDS"] = cities_df.apply(lambda row: Point(row["lng"], row["lat"]).wkt, axis = 1)
+    cities_df["COORDS"] = cities_df["COORDS"].astype(str)
+
+    cities_df.to_gbq(
+        destination_table="dataworks-gis.test_gis.cities",
+        project_id="dataworks-gis",
+        credentials=gcp_credentials_block.get_credentials_from_service_account(),
+        chunksize=500_000,
+        if_exists="append"        
+    )
+
+
+@flow(log_prints=True)
+def initialize_tables():
+    with open("queries/geos_table_creation.sql") as file:
+        geo_script = file.read()
+
+    with open("queries/flux_table_creation.sql") as file:
+        flux_script = file.read()
+    
+    with BigQueryWarehouse.load("bq-block") as warehouse:        
+        warehouse.execute(geo_script)
+        warehouse.execute(flux_script)
+
+@flow(log_prints=True)
+def run_geos_flow(date: pd.Timestamp):
+    """run the pipeline for only one day. the date should be formatted as '%Y-%m-%d':    
+    """
+    data_type = DataType.GEOS
+    ts = pd.to_datetime(date, format='%Y-%m-%d')
+    geos_df = extract_data(ts, data_type)
+    tf_geos_df = transform_data(geos_df, select_cols=geo_cols)
+
+    write_local(tf_geos_df, data_type)
+    write_to_gcs(data_type, ts)
+
+    bq_table_id = "dataworks-gis.test_gis.geos_table_partitioned"                                        
+    write_to_bq(tf_geos_df, bq_table_id)
+
+@flow(log_prints=True)
+def run_flux_flow(date: pd.Timestamp):
+    """run the pipeline for only one day. the date should be formatted as '%Y-%m-%d':    
+    """
+    data_type = DataType.FLUX    
+    flux_df = extract_data(date, data_type)
+    tf_flux_df = transform_data(flux_df, select_cols=flux_cols)
+
+    write_local(tf_flux_df, data_type)
+    write_to_gcs(data_type, date)
+
+    bq_table_id = "dataworks-gis.test_gis.flux_table_partitioned"
+    write_to_bq(tf_flux_df, bq_table_id)
+    
+
+@flow(log_prints=True)
+def run_data_range_flow(start_date, end_date):
+    for dat in pd.date_range(start_date, end_date):
+        run_flux_flow(dat)
+        run_geos_flow(dat)
+        
 
 if __name__ == "__main__":
-    # downloads
-    year = "2022"
-    month = "05"
-    day = "08"
 
-    datetime = f"{year}{month}{day}"
+    ## excecute first time for creating partitioned tables
+    # initialize_tables()
 
-    # month = "0" + str(i + 1)
-    # month = month[-2:]
+    ## upload city data to bq. Only needed once.
+    # upload_cities()
 
-    # url = f"https://power-datastore.s3.amazonaws.com/v9/hourly/2022/{month}/power_901_hourly_{datetime}_ceres_utc.nc"
-    # !wget -O latest.nc {url}
-    run_flow()
+    ## run single flow
+    # dt = "2022-05-08"
+    # ts = pd.to_datetime(dt, format='%Y-%m-%d')
+    # run_flux_flow(ts)
+
+    start = "2022-08-15"
+    end = "2022-08-20"    
+    run_data_range_flow(start, end)
+    

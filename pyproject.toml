@@ -28,6 +28,7 @@ shapely = "^2.0.1"
 prefect = "2.7.7"
 prefect-gcp = {version = "0.2.4", extras = ["cloud_storage"]}
 pandas-gbq = "^0.19.1"
+geopandas = "^0.12.2"
 
 
 [build-system]
