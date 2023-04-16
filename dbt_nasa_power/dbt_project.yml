@@ -33,7 +33,7 @@ clean-targets:         # directories to be removed by `dbt clean`
 # using the `{{ config(...) }}` macro.
 models:
   dbt_nasa_power:
-    geo_models:
+    staging:
       materialized: table
-    flux_models:
+    core:
       materialized: table

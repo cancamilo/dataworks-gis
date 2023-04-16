@@ -1,0 +1,6 @@
+version: 2
+
+models: 
+  - name: city_monthly_agg
+    description: >
+      monthly averages for each city for several selected parameters 

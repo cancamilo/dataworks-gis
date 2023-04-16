@@ -36,7 +36,7 @@ models:
       - name: metric_coords
         description: coordinates of the point within 50km of city point
 
-  - name: stg_city_geo
+  - name: stg_city_geos
     description: > 
       Cities with meteorology data 
     columns:
@@ -48,9 +48,9 @@ models:
       - name: city_coords
       - name: GEO_ID
         description: Unique identifier of data point
-      - name: T2M
+      - name: T2M_CELCIUS
         description: Temperature at 2 meters in Celcius degrees
-      - name: T10M
+      - name: T10M_CELCIUS
         description: Temperature at 10 meters in Celcius degrees
       - name: WS2M
         description: Windspeed at 2 meters
