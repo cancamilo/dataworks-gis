@@ -3,7 +3,7 @@ version: 2
 sources:
     - name: staging
       database: dataworks-gis
-      schema: test_gis
+      schema: geos_flux_data
 
       tables:
           - name: flux_table_partitioned
