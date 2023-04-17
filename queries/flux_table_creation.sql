@@ -1,4 +1,4 @@
-CREATE TABLE `dataworks-gis.test_gis.flux_table_partitioned`
+CREATE TABLE `dataworks-gis.geos_flux_data.flux_table_partitioned`
 (
   lon FLOAT64,
   lat FLOAT64,
