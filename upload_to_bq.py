@@ -1,5 +1,7 @@
 import os
+import requests
 import numpy as np
+import logging
 import pandas as pd
 from pathlib import Path
 from shapely.geometry import Point
@@ -10,6 +12,8 @@ from prefect import flow, task
 
 from prefect_gcp.bigquery import BigQueryWarehouse
 
+
+logger = logging.getLogger("root")
 
 default_cols = ['lon', 'lat', 'time']
 
@@ -44,8 +48,14 @@ def extract_data(ts: pd.Timestamp, type: str) -> pd.DataFrame:
     url = url_geos if type == DataType.GEOS else url_flux        
     url = url.format(year=year, month=month, datetime=datetime)
 
-    os.system(f"wget -O {type}.nc {url}")
-    return xr.open_dataset(f'{type}.nc').to_dataframe().reset_index()    
+    # os.system(f"wget -O {type}.nc {url}")
+    r = requests.get(url, allow_redirects=True)
+
+    if r.status_code == 200:
+        open(f'{type}.nc', 'wb').write(r.content)
+        return xr.open_dataset(f'{type}.nc').to_dataframe().reset_index()
+    else:
+        return None
 
 
 @task()
@@ -105,7 +115,7 @@ def upload_cities():
     cities_df["COORDS"] = cities_df["COORDS"].astype(str)
 
     cities_df.to_gbq(
-        destination_table="dataworks-gis.test_gis.cities",
+        destination_table="dataworks-gis.geos_flux_data.cities",
         project_id="dataworks-gis",
         credentials=gcp_credentials_block.get_credentials_from_service_account(),
         chunksize=500_000,
@@ -132,12 +142,17 @@ def run_geos_flow(date: pd.Timestamp):
     data_type = DataType.GEOS
     ts = pd.to_datetime(date, format='%Y-%m-%d')
     geos_df = extract_data(ts, data_type)
+
+    if geos_df is None:
+        logger.warning(f"Could not load geos data for {date}")
+        return 
+    
     tf_geos_df = transform_data(geos_df, select_cols=geo_cols)
 
     write_local(tf_geos_df, data_type)
     write_to_gcs(data_type, ts)
 
-    bq_table_id = "dataworks-gis.test_gis.geos_table_partitioned"                                        
+    bq_table_id = "dataworks-gis.geos_flux_data.geos_table_partitioned"                                        
     write_to_bq(tf_geos_df, bq_table_id)
 
 @flow(log_prints=True)
@@ -146,12 +161,17 @@ def run_flux_flow(date: pd.Timestamp):
     """
     data_type = DataType.FLUX    
     flux_df = extract_data(date, data_type)
+
+    if flux_df is None:
+        logger.warn(f"Could not load flux data for {date}")
+        return
+    
     tf_flux_df = transform_data(flux_df, select_cols=flux_cols)
 
     write_local(tf_flux_df, data_type)
     write_to_gcs(data_type, date)
 
-    bq_table_id = "dataworks-gis.test_gis.flux_table_partitioned"
+    bq_table_id = "dataworks-gis.geos_flux_data.flux_table_partitioned"
     write_to_bq(tf_flux_df, bq_table_id)
     
 
@@ -175,7 +195,7 @@ if __name__ == "__main__":
     # ts = pd.to_datetime(dt, format='%Y-%m-%d')
     # run_flux_flow(ts)
 
-    start = "2022-08-15"
-    end = "2022-08-20"    
+    start = "2022-06-08"
+    end = "2022-12-31"
     run_data_range_flow(start, end)
     
