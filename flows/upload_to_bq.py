@@ -4,14 +4,10 @@ import numpy as np
 import logging
 import pandas as pd
 from pathlib import Path
-from shapely.geometry import Point
 import xarray as xr
 from prefect_gcp import GcpCredentials
 from prefect_gcp.cloud_storage import GcsBucket
 from prefect import flow, task
-
-from prefect_gcp.bigquery import BigQueryWarehouse
-
 
 logger = logging.getLogger("root")
 
@@ -53,10 +49,9 @@ def extract_data(ts: pd.Timestamp, type: str) -> pd.DataFrame:
 
     if r.status_code == 200:
         open(f'{type}.nc', 'wb').write(r.content)
-        return xr.open_dataset(f'{type}.nc').to_dataframe().reset_index()
+        return xr.open_dataset(f'../{type}.nc').to_dataframe().reset_index()
     else:
         return None
-
 
 @task()
 def transform_data(df: pd.DataFrame, select_cols) -> pd.DataFrame:
@@ -73,14 +68,13 @@ def transform_data(df: pd.DataFrame, select_cols) -> pd.DataFrame:
 
     return df
 
-
 @task()
 def write_local(df: pd.DataFrame, type: str):
     """Write DataFrame out locally as parquet file"""
-    path = Path(f"data/temp_{type}.parquet")
+    path = Path(f"../data/temp_{type}.parquet")
     print("===============> rows processed" ,len(df))
-    if not os.path.exists(f"data"):
-        os.makedirs("data")
+    if not os.path.exists(f"../data"):
+        os.makedirs("../data")
 
     df.to_parquet(path, compression="gzip")
     return path
@@ -89,7 +83,7 @@ def write_local(df: pd.DataFrame, type: str):
 def write_to_gcs(type: str, dt: pd.Timestamp):
     gcs_block = GcsBucket.load("gcs-connector")
     dt_str = dt.strftime('%Y_%m_%d')
-    source_path = f"data/temp_{type}.parquet"
+    source_path = f"../data/temp_{type}.parquet"
     target_path = f"{type}/{dt.year}/{dt.month:02}/{type}_{dt_str}.parquet"
     gcs_block.upload_from_path(from_path=source_path, to_path=target_path)
 
@@ -105,35 +99,15 @@ def write_to_bq(df: pd.DataFrame, table_id: str) -> None:
         if_exists="append"        
     )
 
-@flow(log_prints=True)
-def upload_cities():
-    gcp_credentials_block = GcpCredentials.load("gcp-credentials")
+@task
+def read_from_gcs(type: str, dt: pd.Timestamp):
+    """Download trip data from GCS"""
 
-    cities_df = pd.read_csv("worldcities.csv", sep=",")
-    cities_df["GEO_ID"] = cities_df.index
-    cities_df["COORDS"] = cities_df.apply(lambda row: Point(row["lng"], row["lat"]).wkt, axis = 1)
-    cities_df["COORDS"] = cities_df["COORDS"].astype(str)
-
-    cities_df.to_gbq(
-        destination_table="dataworks-gis.geos_flux_data.cities",
-        project_id="dataworks-gis",
-        credentials=gcp_credentials_block.get_credentials_from_service_account(),
-        chunksize=500_000,
-        if_exists="append"        
-    )
-
-
-@flow(log_prints=True)
-def initialize_tables():
-    with open("queries/geos_table_creation.sql") as file:
-        geo_script = file.read()
-
-    with open("queries/flux_table_creation.sql") as file:
-        flux_script = file.read()
-    
-    with BigQueryWarehouse.load("bq-block") as warehouse:        
-        warehouse.execute(geo_script)
-        warehouse.execute(flux_script)
+    dt_str = dt.strftime('%Y_%m_%d')
+    gcs_path = f"{type}/{dt.year}/{dt.month:02}/{type}_{dt_str}.parquet"
+    gcs_block = GcsBucket.load("gcs-connector")
+    gcs_block.get_directory(from_path=gcs_path, local_path=f"../data/")
+    return Path(f"../data/{gcs_path}")
 
 @flow(log_prints=True)
 def run_geos_flow(date: pd.Timestamp):
@@ -184,18 +158,12 @@ def run_data_range_flow(start_date, end_date):
 
 if __name__ == "__main__":
 
-    ## excecute first time for creating partitioned tables
-    # initialize_tables()
-
-    ## upload city data to bq. Only needed once.
-    # upload_cities()
-
     ## run single flow
     # dt = "2022-05-08"
     # ts = pd.to_datetime(dt, format='%Y-%m-%d')
     # run_flux_flow(ts)
 
-    start = "2022-06-08"
-    end = "2022-12-31"
+    start = "2022-02-01"
+    end = "2022-03-31"
     run_data_range_flow(start, end)
     
