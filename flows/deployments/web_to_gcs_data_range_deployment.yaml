@@ -1,0 +1,45 @@
+###
+### A complete description of a Prefect Deployment for flow 'web-to-gcs-data-range-flow'
+###
+name: web to gcs data range ETL
+description: null
+version: a6e455c9b4fb9c0b6a55cb612507eecb
+# The work queue that will handle this deployment's runs
+work_queue_name: default
+tags: []
+parameters: {}
+schedule: null
+infra_overrides: {}
+infrastructure:
+  type: process
+  env: {}
+  labels: {}
+  name: null
+  command: null
+  stream_output: true
+  working_dir: null
+  block_type_slug: process
+  _block_type_slug: process
+
+###
+### DO NOT EDIT BELOW THIS LINE
+###
+flow_name: web-to-gcs-data-range-flow
+manifest_path: null
+storage: null
+path: /Users/camilo.ramirez/Documents/mai-repos/dataworks-gis
+entrypoint: flows/web_to_gcs.py:web_to_gcs_data_range_flow
+parameter_openapi_schema:
+  title: Parameters
+  type: object
+  properties:
+    start_date:
+      title: start_date
+      position: 0
+    end_date:
+      title: end_date
+      position: 1
+  required:
+  - start_date
+  - end_date
+  definitions: null

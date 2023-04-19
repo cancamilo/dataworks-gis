@@ -1,13 +1,8 @@
-import os
-import numpy as np
 import logging
 import pandas as pd
-from pathlib import Path
-from prefect_gcp import GcpCredentials
-from prefect_gcp.cloud_storage import GcsBucket
-from prefect import flow, task
+from prefect import flow
 import common
-from common import DataType, extract_data, write_local, write_to_gcs, transform_data
+from common import DataType, extract_data, write_to_bq, transform_data
 
 logger = logging.getLogger("root")
 
@@ -43,9 +38,6 @@ def run_flux_flow(date: pd.Timestamp):
         return
     
     tf_flux_df = transform_data(flux_df, select_cols=common.flux_cols)
-
-    write_local(tf_flux_df, data_type)
-    write_to_gcs(data_type, date)
 
     bq_table_id = "dataworks-gis.geos_flux_data.flux_table_partitioned"
     write_to_bq(tf_flux_df, bq_table_id) 

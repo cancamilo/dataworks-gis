@@ -43,10 +43,15 @@ def gcs2bq_flux_flow(date: pd.Timestamp):
     
 
 @flow(log_prints=True)
-def run_data_range_flow(start_date, end_date):
+def gcs_to_bq_data_range_flow(start_date, end_date):
     for dat in pd.date_range(start_date, end_date):
         gcs2bq_flux_flow(dat)
         gcs2bq_geos_flow(dat)
+
+@flow(log_prints=True)
+def gcs_to_bq_flow(date):    
+    gcs2bq_flux_flow(date)
+    gcs2bq_geos_flow(date)
 
 if __name__ == "__main__":
 
@@ -57,4 +62,4 @@ if __name__ == "__main__":
 
     start = "2022-01-02"
     end = "2022-01-05"
-    run_data_range_flow(start, end)
+    gcs_to_bq_flow(start, end)

@@ -42,10 +42,15 @@ def web2gcs_flux_flow(date: pd.Timestamp):
     clean_files(data_type)
 
 @flow(log_prints=True)
-def run_data_range_flow(start_date, end_date):
+def web_to_gcs_data_range_flow(start_date, end_date):
     for dat in pd.date_range(start_date, end_date):
         web2gcs_flux_flow(dat)
         web2gcs_geos_flow(dat)
+
+@flow(log_prints=True)
+def web_to_gcs_flow(date):
+    web2gcs_flux_flow(date)
+    web2gcs_geos_flow(date)
 
 if __name__ == "__main__":
 
@@ -56,4 +61,4 @@ if __name__ == "__main__":
 
     start = "2022-01-02"
     end = "2022-01-05"
-    run_data_range_flow(start, end)
+    web_to_gcs_flow(start, end)
