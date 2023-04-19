@@ -1,18 +1,18 @@
 import os
+import requests
 import numpy as np
 import logging
 import pandas as pd
-from pathlib import Path
-from prefect_gcp import GcpCredentials
-from prefect_gcp.cloud_storage import GcsBucket
-from prefect import flow, task
-import common
-from common import DataType, extract_data, write_local, write_to_gcs, transform_data
+from prefect import flow
+from common import DataType, extract_data, write_to_gcs, clean_files
 
 logger = logging.getLogger("root")
 
+url_geos = "https://power-datastore.s3.amazonaws.com/v9/daily/{year}/{month:02}/power_901_daily_{datetime}_geos5124_utc.nc"
+url_flux = "https://power-datastore.s3.amazonaws.com/v9/daily/{year}/{month:02}/power_901_daily_{datetime}_flashflux_lst.nc"
+
 @flow(log_prints=True)
-def run_geos_flow(date: pd.Timestamp):
+def web2gcs_geos_flow(date: pd.Timestamp):
     """run the pipeline for only one day. the date should be formatted as '%Y-%m-%d':    
     """
     data_type = DataType.GEOS
@@ -21,18 +21,14 @@ def run_geos_flow(date: pd.Timestamp):
 
     if geos_df is None:
         logger.warning(f"Could not load geos data for {date}")
-        return 
+        return
     
-    tf_geos_df = transform_data(geos_df, select_cols=common.geo_cols)
-
-    write_local(tf_geos_df, data_type)
     write_to_gcs(data_type, ts)
+    clean_files(data_type)
 
-    bq_table_id = "dataworks-gis.geos_flux_data.geos_table_partitioned"                                        
-    write_to_bq(tf_geos_df, bq_table_id)
 
 @flow(log_prints=True)
-def run_flux_flow(date: pd.Timestamp):
+def web2gcs_flux_flow(date: pd.Timestamp):
     """run the pipeline for only one day. the date should be formatted as '%Y-%m-%d':    
     """
     data_type = DataType.FLUX    
@@ -40,22 +36,16 @@ def run_flux_flow(date: pd.Timestamp):
 
     if flux_df is None:
         logger.warn(f"Could not load flux data for {date}")
-        return
+        return    
     
-    tf_flux_df = transform_data(flux_df, select_cols=common.flux_cols)
-
-    write_local(tf_flux_df, data_type)
     write_to_gcs(data_type, date)
-
-    bq_table_id = "dataworks-gis.geos_flux_data.flux_table_partitioned"
-    write_to_bq(tf_flux_df, bq_table_id) 
+    clean_files(data_type)
 
 @flow(log_prints=True)
 def run_data_range_flow(start_date, end_date):
     for dat in pd.date_range(start_date, end_date):
-        run_flux_flow(dat)
-        run_geos_flow(dat)
-        
+        web2gcs_flux_flow(dat)
+        web2gcs_geos_flow(dat)
 
 if __name__ == "__main__":
 
@@ -64,7 +54,6 @@ if __name__ == "__main__":
     # ts = pd.to_datetime(dt, format='%Y-%m-%d')
     # run_flux_flow(ts)
 
-    start = "2022-02-01"
-    end = "2022-03-31"
+    start = "2022-01-02"
+    end = "2022-01-05"
     run_data_range_flow(start, end)
-    
