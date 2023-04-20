@@ -1,2 +1,6 @@
 *.nc
+/data/*
+__pycache__
+
 *.parquet
+.terraform
