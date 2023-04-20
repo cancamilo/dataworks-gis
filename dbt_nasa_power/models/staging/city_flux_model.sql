@@ -27,4 +27,4 @@ WITH cities_data AS (
 )
 SELECT * FROM cities_data a
 JOIN metrics_flux b
-ON ST_DWithin(a.city_coords, b.metric_coords, 50000)
+ON ST_DWithin(a.city_coords, b.metric_coords, {{var('join_radius', default=50000)}})
