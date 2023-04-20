@@ -1,6 +1,7 @@
 SELECT 
   a.city_name, 
   FORMAT_DATETIME("%B", DATETIME(a.time)) as month_name,
+  ANY_VALUE(a.country) as country,
   AVG(a.T2M_CELCIUS) AS monthly_average_temperature,
   AVG(a.WS2M) AS monthly_average_windspeed,
   AVG(a.PRECTOTCORR) AS monthly_average_precipitations,
