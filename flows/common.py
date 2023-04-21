@@ -43,7 +43,7 @@ def extract_data(ts: pd.Timestamp, type: str) -> str:
     url = url.format(year=year, month=month, datetime=datetime)
 
     # os.system(f"wget -O {type}.nc {url}")
-    r = requests.get(url, allow_redirects=True)
+    r = requests.get(url, allow_redirects=True,  timeout=(20,200))
 
     write_path = f"{abs_data_path}/temp_{type}.nc"
     parquet_path = f"{abs_data_path}/temp_{type}.parquet"
@@ -82,7 +82,7 @@ def write_to_gcs(type: str, dt: pd.Timestamp):
     source_path = f"{abs_data_path}/temp_{type}.parquet"    
     target_path = f"{type}/{dt.year}/{dt.month:02}/{type}_{dt_str}.parquet"
     
-    gcs_block.upload_from_path(from_path=source_path, to_path=target_path)
+    gcs_block.upload_from_path(from_path=source_path, to_path=target_path, timeout=120, num_retries=5)
 
 @task
 def read_from_gcs(type: str, dt: pd.Timestamp):
@@ -92,8 +92,7 @@ def read_from_gcs(type: str, dt: pd.Timestamp):
     gcs_path = f"{type}/{dt.year}/{dt.month:02}/{type}_{dt_str}.parquet"
     gcs_block = GcsBucket.load("gcs-connector")
     gcs_block.get_directory(from_path=gcs_path, local_path=f"{abs_data_path}")
-    return pd.read_parquet(f"{abs_data_path}/{gcs_path}")
-    # return f"{abs_data_path}/{gcs_path}"
+    return pd.read_parquet(f"{abs_data_path}/{gcs_path}")    
 
 @task
 def write_to_bq(df: pd.DataFrame, table_id: str) -> None:

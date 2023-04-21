@@ -2,7 +2,11 @@ import logging
 import pandas as pd
 from prefect import flow
 import common
-from common import DataType, extract_data, write_to_bq, transform_data
+from common import (DataType, 
+                    extract_data, 
+                    write_to_gcs,
+                    write_to_bq,                     
+                    transform_data)
 
 logger = logging.getLogger("root")
 
@@ -10,6 +14,8 @@ logger = logging.getLogger("root")
 def run_geos_flow(date: pd.Timestamp):
     """run the pipeline for only one day. the date should be formatted as '%Y-%m-%d':    
     """
+
+    print(f"running geos flow for {date}")
     data_type = DataType.GEOS
     ts = pd.to_datetime(date, format='%Y-%m-%d')
     geos_df = extract_data(ts, data_type)
@@ -18,10 +24,9 @@ def run_geos_flow(date: pd.Timestamp):
         logger.warning(f"Could not load geos data for {date}")
         return 
     
-    tf_geos_df = transform_data(geos_df, select_cols=common.geo_cols)
+    write_to_gcs(data_type, date)
 
-    write_local(tf_geos_df, data_type)
-    write_to_gcs(data_type, ts)
+    tf_geos_df = transform_data(geos_df, select_cols=common.geo_cols)    
 
     bq_table_id = "dataworks-gis.geos_flux_data.geos_table_partitioned"                                        
     write_to_bq(tf_geos_df, bq_table_id)
@@ -30,12 +35,17 @@ def run_geos_flow(date: pd.Timestamp):
 def run_flux_flow(date: pd.Timestamp):
     """run the pipeline for only one day. the date should be formatted as '%Y-%m-%d':    
     """
+
+    print(f"running flux flow for {date}")
     data_type = DataType.FLUX    
-    flux_df = extract_data(date, data_type)
+    ts = pd.to_datetime(date, format='%Y-%m-%d')
+    flux_df = extract_data(ts, data_type)
 
     if flux_df is None:
         logger.warn(f"Could not load flux data for {date}")
         return
+    
+    write_to_gcs(data_type, date)
     
     tf_flux_df = transform_data(flux_df, select_cols=common.flux_cols)
 
@@ -56,7 +66,7 @@ if __name__ == "__main__":
     # ts = pd.to_datetime(dt, format='%Y-%m-%d')
     # run_flux_flow(ts)
 
-    start = "2022-02-01"
-    end = "2022-03-31"
+    start = "2022-01-01"
+    end = "2022-01-31"
     run_data_range_flow(start, end)
     
