@@ -66,7 +66,7 @@ if __name__ == "__main__":
     # ts = pd.to_datetime(dt, format='%Y-%m-%d')
     # run_flux_flow(ts)
 
-    start = "2022-01-01"
-    end = "2022-01-31"
+    start = "2022-04-01"
+    end = "2022-05-31"
     run_data_range_flow(start, end)
     
