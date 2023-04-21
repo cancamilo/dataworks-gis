@@ -67,11 +67,6 @@ def transform_data(df: pd.DataFrame, select_cols) -> pd.DataFrame:
     # add dt to make quering by partition easier. Truncating to month.
     df["dt"] = df['time'].dt.strftime('%Y-%m-01')
     df = df[default_cols + select_cols]
-
-    # if neccesary, transform data types to strings to avoid failures when creating tables from parquet
-    # for col in select_cols:
-    #     df[col] = df[col].astype(str)
-
     return df
 
 @task

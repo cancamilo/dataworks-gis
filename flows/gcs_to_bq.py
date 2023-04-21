@@ -54,12 +54,6 @@ def gcs_to_bq_flow(date):
     gcs2bq_geos_flow(date)
 
 if __name__ == "__main__":
-
-    ## run single flow
-    # dt = "2022-05-08"
-    # ts = pd.to_datetime(dt, format='%Y-%m-%d')
-    # run_flux_flow(ts)
-
     start = "2022-01-02"
     end = "2022-01-05"
     gcs_to_bq_flow(start, end)

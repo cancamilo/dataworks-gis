@@ -61,12 +61,7 @@ def run_data_range_flow(start_date, end_date):
 
 if __name__ == "__main__":
 
-    ## run single flow
-    # dt = "2022-05-08"
-    # ts = pd.to_datetime(dt, format='%Y-%m-%d')
-    # run_flux_flow(ts)
-
-    start = "2022-04-01"
-    end = "2022-05-31"
+    start = "2022-07-01"
+    end = "2022-08-31"
     run_data_range_flow(start, end)
     
