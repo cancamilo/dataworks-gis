@@ -80,11 +80,11 @@ Prefect is used for data orchestrations and consist of multiple flows and deploy
 
 I included default deployments for each of the flows. They can be easily applied using the [Makefile](./Makefile). Check the replication steps for more information.
 
-## Dbt
+### Dbt
 
 Dbt is used for the modelling part. The data is read from bigQuery and different models are created. 
 
-## Data visualization
+### Data visualization
 
 Looker is used for the visualizations. It uses the data models in bigQuery created by a dbt Job.
 
@@ -140,6 +140,26 @@ In dbt, given the cities table, the raw flux and geos tables I perform an inner 
 ## Dashboard preview
 
 ## Replication steps
+
+### Setup google cloud
+
+1. Start by creating a new Google Cloud account and setting up a new project. 
+
+2. Create a new service account and grant it Compute Admin, Service Account User, Storage Admin, Storage Object Admin, and BigQuery Admin roles. 
+
+3. After creating the service account, click on "Manage Keys" under actions Menu. Click on the Add Key dropdown and click on Create new key and create a new key in JSON format, saving it to your computer.
+
+4. Install the Google Cloud CLI and log in by running "gcloud init" in an Ubuntu Linux environment or similar. 
+
+5. Choose the cloud project you created to use. Set the environment variable to point to your downloaded service account keys JSON file by running "export GOOGLE_APPLICATION_CREDENTIALS=<path/to/your/service-account-authkeys>.json". 
+
+6. Refresh your token/session and verify authentication by running "gcloud auth application-default login". 
+
+7. Ensure that the following APIs are enabled for your project: 
+
+https://console.cloud.google.com/apis/library/iam.googleapis.com 
+https://console.cloud.google.com/apis/library/iamcredentials.googleapis.com 
+https://console.cloud.google.com/apis/library/compute.googleapis.com
 
 
 ## Future work
