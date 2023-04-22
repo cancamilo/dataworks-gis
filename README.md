@@ -209,17 +209,41 @@ You can copy your generated key as:
 
             gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS
 
+20. Install Make
+
+        sudo apt install make
+
 After the previous steps, you should have your environment ready to create the necessary infrastructure and run the workflows
 
 ### Create infrastructure with terraform
 
 With this repo cloned and given that you have installed terraform, navigate to the terraform folder and execute the following steps:
 
-            terraform init 
+        terraform init 
 
-            terraform plan
+        terraform plan
 
-            terraform apply
+        terraform apply
+
+### Install conda environment
+
+First make sure you have conda installed in your machine. Then we can create and activate an environment:
+
+        conda create --name dataworks-env
+
+        conda activate dataworks-env
+
+Finally, we should install the dependencies specified in [requirements.txt](./requirements.txt).
+
+        pip install -r requirements.txt
+
+### Deploy and run flows
+
+Start the prefect server:
+
+        prefect orion start
+
+
 
 
 

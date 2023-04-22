@@ -8,7 +8,10 @@ version: a6e455c9b4fb9c0b6a55cb612507eecb
 work_queue_name: default
 tags: []
 parameters: {}
-schedule: null
+schedule:
+  cron: 0 0 6 * *
+  timezone: null
+  day_or: true
 infra_overrides: {}
 infrastructure:
   type: process
@@ -27,7 +30,7 @@ infrastructure:
 flow_name: web-to-gcs-flow
 manifest_path: null
 storage: null
-path: /Users/camilo.ramirez/Documents/mai-repos/dataworks-gis
+path: /home/camilo.ramirez/dataworks-gis
 entrypoint: flows/web_to_gcs.py:web_to_gcs_flow
 parameter_openapi_schema:
   title: Parameters

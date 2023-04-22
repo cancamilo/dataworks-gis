@@ -27,7 +27,7 @@ infrastructure:
 flow_name: web-to-gcs-data-range-flow
 manifest_path: null
 storage: null
-path: /Users/camilo.ramirez/Documents/mai-repos/dataworks-gis
+path: /home/camilo.ramirez/dataworks-gis
 entrypoint: flows/web_to_gcs.py:web_to_gcs_data_range_flow
 parameter_openapi_schema:
   title: Parameters

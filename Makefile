@@ -1,16 +1,16 @@
-init_env:
-	poetry shell
+start_prefect:
+	prefect orion start
 
 build_deployment_extract_flows:
 	prefect deployment build flows/web_to_gcs.py:web_to_gcs_data_range_flow -n "web to gcs data range ETL" \
 	-o flows/deployments/web_to_gcs_data_range_deployment.yaml \
-	&& prefect deployment build flows/web_to_gcs.py:web_to_gcs_flow -n "web to gcs dt ETL" \
+	&& prefect deployment build flows/web_to_gcs.py:web_to_gcs_flow -n "web to gcs dt ETL" --cron "0 0 6 * *" -a \
 	-o flows/deployments/web_to_gcs_deployment.yaml
 
 build_deployment_deploy_load_flow:
 	prefect deployment build flows/gcs_to_bq.py:gcs_to_bq_data_range_flow -n "gcs to bq daily range ETL" \
 	-o flows/deployments/gcs_to_bq_data_range_deployment.yaml \
-	&& prefect deployment build flows/gcs_to_bq.py:gcs_to_bq_flow -n "gcs to bq daily ETL" \
+	&& prefect deployment build flows/gcs_to_bq.py:gcs_to_bq_flow -n "gcs to bq daily ETL" --cron "0 0 7 * *" -a \
 	-o flows/deployments/gcs_to_bq_deployment.yaml
 
 build_deployments:
@@ -33,6 +33,13 @@ activate-service-account:
 
 set-default-project:
 	gcloud config set project dataworks-gis
+
+create-env:
+	conda create --name dataworks-env
+
+setup-env:	
+	conda install pip \
+    && pip install -r requirements.txt
 
 
 

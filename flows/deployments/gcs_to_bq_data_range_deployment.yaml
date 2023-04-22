@@ -3,7 +3,7 @@
 ###
 name: gcs to bq daily range ETL
 description: null
-version: eb4062be4247853006941a9aed18a302
+version: e0f3e13bc86fa43e90c2d81364700fe6
 # The work queue that will handle this deployment's runs
 work_queue_name: default
 tags: []
@@ -27,7 +27,7 @@ infrastructure:
 flow_name: gcs-to-bq-data-range-flow
 manifest_path: null
 storage: null
-path: /Users/camilo.ramirez/Documents/mai-repos/dataworks-gis
+path: /home/camilo.ramirez/dataworks-gis
 entrypoint: flows/gcs_to_bq.py:gcs_to_bq_data_range_flow
 parameter_openapi_schema:
   title: Parameters
