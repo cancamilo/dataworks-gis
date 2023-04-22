@@ -25,4 +25,15 @@ apply_deployments:
 start_agent:
 	prefect agent start -q 'default'
 
+ssh-vm:
+	gcloud compute ssh --zone "europe-north1-a" "instance-1" --project "dataworks-gis"
+
+activate-service-account:
+	gcloud auth activate-service-account dataworks-gis-super@dataworks-gis.iam.gserviceaccount.com --key-file="gc_keys/dataworks-gis.json
+
+set-default-project:
+	gcloud config set project dataworks-gis
+
+
+
 

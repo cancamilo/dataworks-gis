@@ -161,5 +161,78 @@ https://console.cloud.google.com/apis/library/iam.googleapis.com
 https://console.cloud.google.com/apis/library/iamcredentials.googleapis.com 
 https://console.cloud.google.com/apis/library/compute.googleapis.com
 
+### Setup Environmet VM on Google Cloud (Optional)
+
+Note that workflow execution environment can be setup in your local machine but for the purpose of having a common configuration you can create a VM on Google Cloud and follow the next steps:
+
+1. Before we can interact with any VM on Google cloud we need to create an ssh key. The steps are described [here](https://cloud.google.com/compute/docs/connect/create-ssh-keys).
+
+2. Once the private and public key pair is generated, we need to add the public key to our Google cloud comnpute engine configuration. On the GC console, navigate to compute engine -> metadata -> SSH Keys -> Add SSH Keys. 
+
+You can copy your generated key as:
+
+        cat ~/.ssh/gcp.pub | pbcopy
+
+3. Create an VM instance with the following minmum specifications: 4 vCPUs and 16GB RAM and a boot disk of minimum 30GB. For operating system choose a recent stable Ubuntu release. Alternatively you can also use the following gcp command to create a vm instance:
+
+4. Ssh to the created instance. This can be done with the ssh command or using the gcloud command line tool. For the last option, make sure that you have logged in with the correct service account and have the required permissions. See [the make file](./Makefile) for help with the commands.
+
+5. On the virtual machine command line, download and install anaconda and docker:
+
+        wget https://repo.anaconda.com/archive/Anaconda3-2023.03-Linux-x86_64.sh
+
+        bash Anaconda3-2023.03-Linux-x86_64.sh
+
+        sudo apt-get update
+
+        sudo apt-get install docker.io
+
+6. Clone this repository in the virtual machine:
+
+        git clone https://github.com/cancamilo/dataworks-gis.git
+
+7. Install terraform        
+
+        wget https://releases.hashicorp.com/terraform/1.1.4/terraform_1.1.4_linux_amd64.zip
+
+        sudo apt-get install unzip 
+
+        unzip terraform_1.1.4_linux_amd64.zip
+
+        ls
+
+8. Transfer your previously generated service account key to the VM using ftp. 
+
+9. Configure your google account:
+
+            export GOOGLE_APPLICATION_CREDENTIALS=~/.gc/{your_key}.json
+
+            gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS
+
+After the previous steps, you should have your environment ready to create the necessary infrastructure and run the workflows
+
+### Create infrastructure with terraform
+
+With this repo cloned and given that you have installed terraform, navigate to the terraform folder and execute the following steps:
+
+            terraform init 
+
+            terraform plan
+
+            terraform apply
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## Future work
