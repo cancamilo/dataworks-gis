@@ -139,6 +139,8 @@ In dbt, given the cities table, the raw flux and geos tables I perform an inner 
 
 ## Dashboard preview
 
+The looker report can be viewed [here](https://lookerstudio.google.com/s/j1MZwZCTnAE)
+
 **Time series**
 
 <p align="center">
