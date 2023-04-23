@@ -326,3 +326,9 @@ data prepared for visualization.
 5. Pivot Tables: We can extract interesting insights by using pivot tables. In this case I have created a pivot table with the row dimension `time` and the clolumn dimension `city_name`. You can then select any metric and this table will show the trend overtime for several cities.
 
 ## Future work
+
+- Include new data sources with more parameters. The NASA Power datalake provides measurements that starts from the year 1984. In this work I have considered only a subset of the data starting from 2022 on.
+
+- Simplify the configuration of the VM. A lot of the steps could be packed into a bash script.
+
+- Dockerizing the prefect server and agents would make the workflows easier to reproduce under the same conditions and allow scaling of the ETLs if deployed on kubernetes or similar technologies.
