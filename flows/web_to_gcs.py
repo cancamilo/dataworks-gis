@@ -13,18 +13,17 @@ url_geos = "https://power-datastore.s3.amazonaws.com/v9/daily/{year}/{month:02}/
 url_flux = "https://power-datastore.s3.amazonaws.com/v9/daily/{year}/{month:02}/power_901_daily_{datetime}_flashflux_lst.nc"
 
 @flow(log_prints=True)
-def web2gcs_geos_flow(date: pd.Timestamp):
+def web2gcs_geos_flow(dt: pd.Timestamp):
     """run the pipeline for only one day. the date should be formatted as '%Y-%m-%d':    
     """
-    data_type = DataType.GEOS
-    ts = pd.to_datetime(date, format='%Y-%m-%d')
-    geos_df = extract_data(ts, data_type)
+    data_type = DataType.GEOS    
+    geos_df = extract_data(dt, data_type)
 
     if geos_df is None:
-        logger.warning(f"Could not load geos data for {date}")
+        logger.warning(f"Could not load geos data for {dt}")
         return
     
-    write_to_gcs(data_type, ts)
+    write_to_gcs(data_type, dt)
     clean_files(data_type)
 
 
@@ -50,11 +49,14 @@ def web_to_gcs_data_range_flow(start_date, end_date):
 
 @flow(log_prints=True)
 def web_to_gcs_flow(date=None):
+
     if date is None:
         date = datetime.today().strftime('%Y-%m-%d')
 
-    web2gcs_flux_flow(date)
-    web2gcs_geos_flow(date)
+    dt = pd.to_datetime(date, format='%Y-%m-%d')
+
+    web2gcs_flux_flow(dt)
+    web2gcs_geos_flow(dt)
 
 if __name__ == "__main__":
 

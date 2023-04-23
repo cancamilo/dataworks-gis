@@ -11,20 +11,19 @@ from common import (DataType,
 logger = logging.getLogger("root")
 
 @flow(log_prints=True)
-def run_geos_flow(date: pd.Timestamp):
+def run_geos_flow(dt: pd.Timestamp):
     """run the pipeline for only one day. the date should be formatted as '%Y-%m-%d':    
     """
 
-    print(f"running geos flow for {date}")
-    data_type = DataType.GEOS
-    ts = pd.to_datetime(date, format='%Y-%m-%d')
-    geos_df = extract_data(ts, data_type)
+    print(f"running geos flow for {dt}")
+    data_type = DataType.GEOS    
+    geos_df = extract_data(dt, data_type)
 
     if geos_df is None:
-        logger.warning(f"Could not load geos data for {date}")
+        logger.warning(f"Could not load geos data for {dt}")
         return 
     
-    write_to_gcs(data_type, date)
+    write_to_gcs(data_type, dt)
 
     tf_geos_df = transform_data(geos_df, select_cols=common.geo_cols)    
 
@@ -32,20 +31,19 @@ def run_geos_flow(date: pd.Timestamp):
     write_to_bq(tf_geos_df, bq_table_id)
 
 @flow(log_prints=True)
-def run_flux_flow(date: pd.Timestamp):
+def run_flux_flow(dt: pd.Timestamp):
     """run the pipeline for only one day. the date should be formatted as '%Y-%m-%d':    
     """
 
-    print(f"running flux flow for {date}")
+    print(f"running flux flow for {dt}")
     data_type = DataType.FLUX    
-    ts = pd.to_datetime(date, format='%Y-%m-%d')
-    flux_df = extract_data(ts, data_type)
+    flux_df = extract_data(dt, data_type)
 
     if flux_df is None:
-        logger.warn(f"Could not load flux data for {date}")
+        logger.warn(f"Could not load flux data for {dt}")
         return
     
-    write_to_gcs(data_type, date)
+    write_to_gcs(data_type, dt)
     
     tf_flux_df = transform_data(flux_df, select_cols=common.flux_cols)
 
@@ -61,7 +59,7 @@ def run_data_range_flow(start_date, end_date):
 
 if __name__ == "__main__":
 
-    start = "2022-07-01"
-    end = "2022-08-31"
+    start = "2022-03-01"
+    end = "2023-04-01"
     run_data_range_flow(start, end)
     

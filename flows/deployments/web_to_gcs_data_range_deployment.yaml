@@ -3,19 +3,13 @@
 ###
 name: web to gcs data range ETL
 description: null
-version: f88693fcfd67dffd306e2aaad413382e
+version: 663f03e31d2bfbf8d943d64b90786b23
 # The work queue that will handle this deployment's runs
 work_queue_name: default
 tags: []
 parameters: {}
 schedule: null
 infra_overrides: {}
-
-###
-### DO NOT EDIT BELOW THIS LINE
-###
-flow_name: web-to-gcs-data-range-flow
-manifest_path: null
 infrastructure:
   type: process
   env: {}
@@ -24,11 +18,14 @@ infrastructure:
   command: null
   stream_output: true
   working_dir: null
-  _block_document_id: d495a0f0-83ea-486a-a1f0-59fa8ef0e93f
-  _block_document_name: anonymous-5a9a91bd-64a5-4ca2-8862-e293c6e40a68
-  _is_anonymous: true
   block_type_slug: process
   _block_type_slug: process
+
+###
+### DO NOT EDIT BELOW THIS LINE
+###
+flow_name: web-to-gcs-data-range-flow
+manifest_path: null
 storage: null
 path: /home/camilo.ramirez/dataworks-gis
 entrypoint: flows/web_to_gcs.py:web_to_gcs_data_range_flow

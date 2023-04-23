@@ -7,20 +7,20 @@ from pathlib import Path
 import xarray as xr
 from pathlib import Path
 from prefect_gcp.cloud_storage import GcsBucket
-from prefect import flow, task
+from prefect import flow
+from datetime import datetime
 import common
 from common import DataType, write_to_bq, read_from_gcs, transform_data
 
 logger = logging.getLogger("root")
 
 @flow(log_prints=True)
-def gcs2bq_geos_flow(date: pd.Timestamp):
+def gcs2bq_geos_flow(dt: pd.Timestamp):
     """run the pipeline for only one day. the date should be formatted as '%Y-%m-%d':    
     """
-    data_type = DataType.GEOS
-    ts = pd.to_datetime(date, format='%Y-%m-%d')
+    data_type = DataType.GEOS    
 
-    df = read_from_gcs(data_type, ts)
+    df = read_from_gcs(data_type, dt)
     df = transform_data(df, common.geo_cols)
 
     bq_table_id = "dataworks-gis.geos_flux_data.geos_table_partitioned"
@@ -29,13 +29,12 @@ def gcs2bq_geos_flow(date: pd.Timestamp):
 
 
 @flow(log_prints=True)
-def gcs2bq_flux_flow(date: pd.Timestamp):
+def gcs2bq_flux_flow(dt: pd.Timestamp):
     """run the pipeline for only one day. the date should be formatted as '%Y-%m-%d':    
     """
-    data_type = DataType.FLUX
-    ts = pd.to_datetime(date, format='%Y-%m-%d')
+    data_type = DataType.FLUX   
 
-    df = read_from_gcs(data_type, ts)
+    df = read_from_gcs(data_type, dt)
     df = transform_data(df, common.flux_cols)
     
     bq_table_id = "dataworks-gis.geos_flux_data.flux_table_partitioned"
@@ -54,8 +53,10 @@ def gcs_to_bq_flow(date=None):
     if date is None:
         date = datetime.today().strftime('%Y-%m-%d')
 
-    gcs2bq_flux_flow(date)
-    gcs2bq_geos_flow(date)
+    dt = pd.to_datetime(date, format='%Y-%m-%d')
+
+    gcs2bq_flux_flow(dt)
+    gcs2bq_geos_flow(dt)
 
 if __name__ == "__main__":
     start = "2022-01-02"

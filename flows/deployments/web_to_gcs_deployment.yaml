@@ -3,7 +3,7 @@
 ###
 name: web to gcs dt ETL
 description: null
-version: f88693fcfd67dffd306e2aaad413382e
+version: 663f03e31d2bfbf8d943d64b90786b23
 # The work queue that will handle this deployment's runs
 work_queue_name: default
 tags: []
@@ -13,12 +13,6 @@ schedule:
   timezone: null
   day_or: true
 infra_overrides: {}
-
-###
-### DO NOT EDIT BELOW THIS LINE
-###
-flow_name: web-to-gcs-flow
-manifest_path: null
 infrastructure:
   type: process
   env: {}
@@ -27,11 +21,14 @@ infrastructure:
   command: null
   stream_output: true
   working_dir: null
-  _block_document_id: 818a8ee8-448f-4c24-b151-3143da70f279
-  _block_document_name: anonymous-ddb14cd7-429a-49e4-88af-d2e4d8bfb9fc
-  _is_anonymous: true
   block_type_slug: process
   _block_type_slug: process
+
+###
+### DO NOT EDIT BELOW THIS LINE
+###
+flow_name: web-to-gcs-flow
+manifest_path: null
 storage: null
 path: /home/camilo.ramirez/dataworks-gis
 entrypoint: flows/web_to_gcs.py:web_to_gcs_flow

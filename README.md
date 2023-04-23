@@ -243,34 +243,86 @@ Finally, we should install the dependencies specified in [requirements.txt](./re
 
         prefect orion start
 
-2. Start a prefect agent to execute the flows:
+2. In a different terminal, start a prefect agent to execute the flows:
 
         prefect agent start -q 'default'
 
-3. Apply the deployments:
+3. In the prefect UI, install the following blocks:
+
+   - gcs-credentials: add your service account key in the service account info
+   - gcs-bucket: Name the block `gcs-connector`, use `nasa_power_datalake` as the bucket name and as credentials choose the previously created gcs-credentials.
+   - BigQueryWarehouse: name it bq-block and connect to previously stored credentials.
+
+   Note: You could name the blocks as desired, but then the namings in the flows should be changed to adapt to your names.
+
+4. Apply the deployments:
 
         Make apply_deployments
 
-This command will apply 4 already generated flows:
+   This command will apply 4 already generated flows:
 
-        - 
+   - web_to_gcs_flow: 
 
+        parameters:
+        - start_date(optional): If not provided it will execute for the current day.
 
+        frequency: Runs everyday at 6 am.
 
+   - gcs_to_bq_flow:
 
+        parameters:
+        - start_date(optional): If not provided it will execute for the current day.
 
+        frequency: Runs everyday at 6 am.
 
+    - web_to_gcs_data_range_flow (optional): 
 
+        parameters:
+        - start_date
+        - end-date        
 
+    - gcs_to_bq_data_range_flow (optional): 
 
+        parameters:
+        - start_date
+        - end_date
 
+If all you need is to start acquiring data everyday, it is enough to just apply the deployments and the ETL will start populating the gcp bucket and the BigQuery table. If you want to acquire the historical data, you should first execute `web_to_gcs_data_range_flow` in the desired time range in order to populate the bucket and then execute `gcs_to_bq_data_range_flow`in the same time range to read from the bucket and upload the data to the partitioned tables in BigQuery. 
 
+### Dbt Job Run
 
+Up until this point, we have our date available in the desired time range in the GCS bucket and in the partitioned BigQuery tables. Now we can proceed to create the models from our data that will be subsequently used for visualizations in Google looker.
 
+As a first step we should create a dbt cloud account and connect it to our BigQuery account. To do so you can follow this [excelent guide](https://github.com/ziritrion/dataeng-zoomcamp/blob/main/notes/4_analytics.md#setting-up-dbt). It is also neccesary to configure our dbt cloud account to connect to the github where the repository lives. In this repo, the dbt relevant project files are in the `dbt_nasa_power` folder. 
 
+Inside our dbt project in the cloud, we proceed configure a `Job`. It should run in a production environment that points to our `production` dataset in BigQuery. The `Job` should be configured to execute the following steps:
 
+        dbt test
 
+        dbt run --vars '{"join_radius": 70000, "is_test_run": false}'
 
+First, this job will perform some default testing on the data and then build and run the [dbt models](./dbt_nasa_power/models/). The `join_radius` variable specifies the maximum radius around a city that will be used to join the data from the neighboring points in the metrics tables. 
 
+You can program this `Job` to run periodically with a similar frequency as the prefect flows but with a small delay to wait for the flows to finish. Alternatively, the flows coud be changed to execute the dbt Job via API, but note that API access is a paid dbt feature and not included in the free plan. 
+
+Once this job finished succesfuly, we should have three new tables: 
+
+- city_flux_model: cities joint with flux metrics.
+- city_geos_model: cities joint with geos metrics.
+- city_monthly_agg: monthly aggregations for every city for selected parameters.
+
+data prepared for visualization.
+
+### Google Looker Studio
+
+1. Go to [Google Looker Studio](https://lookerstudio.google.com/) and create a new report.
+
+2. You will be asked to provide a data source. Choose BigQuery -> your project -> production (dataset) -> table. This will open the report and then you can connect additional data sources (different tables).
+
+3. Time series: you can create time series plots to visualize trends of one or multiple meteorology or solar irradiance parameters for a selected city. For the time series, the column `time` should be used as dimension and then choose the average aggregation for at least one of the metric.
+
+4. Bar charts: The `city_monthly_agg` contains selected metrics aggregated by month, this data can be plotted in a bar chart choosing the dimension `month_name`. You can also add multiple parameters but unfortunately there does not seem to be an easy way to add a y axis to the right in order to make easier the visualization of parameters in diferent scales.
+
+5. Pivot Tables: We can extract interesting insights by using pivot tables. In this case I have created a pivot table with the row dimension `time` and the clolumn dimension `city_name`. You can then select any metric and this table will show the trend overtime for several cities.
 
 ## Future work

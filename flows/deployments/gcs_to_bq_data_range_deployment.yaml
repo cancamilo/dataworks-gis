@@ -3,19 +3,13 @@
 ###
 name: gcs to bq daily range ETL
 description: null
-version: 60b3c982b7e04dc39dac76c512aead59
+version: 1a5b4b658af45db8f2f4115580c11842
 # The work queue that will handle this deployment's runs
 work_queue_name: default
 tags: []
 parameters: {}
 schedule: null
 infra_overrides: {}
-
-###
-### DO NOT EDIT BELOW THIS LINE
-###
-flow_name: gcs-to-bq-data-range-flow
-manifest_path: null
 infrastructure:
   type: process
   env: {}
@@ -24,11 +18,14 @@ infrastructure:
   command: null
   stream_output: true
   working_dir: null
-  _block_document_id: a85e4afb-a802-4b1c-99f2-92a5c6cf7efc
-  _block_document_name: anonymous-48aa7b13-46e5-4fb3-b265-919a59658ecc
-  _is_anonymous: true
   block_type_slug: process
   _block_type_slug: process
+
+###
+### DO NOT EDIT BELOW THIS LINE
+###
+flow_name: gcs-to-bq-data-range-flow
+manifest_path: null
 storage: null
 path: /home/camilo.ramirez/dataworks-gis
 entrypoint: flows/gcs_to_bq.py:gcs_to_bq_data_range_flow
