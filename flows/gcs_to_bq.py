@@ -49,7 +49,11 @@ def gcs_to_bq_data_range_flow(start_date, end_date):
         gcs2bq_geos_flow(dat)
 
 @flow(log_prints=True)
-def gcs_to_bq_flow(date):    
+def gcs_to_bq_flow(date=None):
+
+    if date is None:
+        date = datetime.today().strftime('%Y-%m-%d')
+
     gcs2bq_flux_flow(date)
     gcs2bq_geos_flow(date)
 

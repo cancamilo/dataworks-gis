@@ -49,7 +49,7 @@ def web_to_gcs_data_range_flow(start_date, end_date):
         web2gcs_geos_flow(dat)
 
 @flow(log_prints=True)
-def web_to_gcs_flow(date):
+def web_to_gcs_flow(date=None):
     if date is None:
         date = datetime.today().strftime('%Y-%m-%d')
 
