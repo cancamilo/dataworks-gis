@@ -120,11 +120,11 @@ I extract each of the these parameters measured on a daily basis. The measuremen
 
 Flux schema:
 
-<img src="./images/flux_schema.png" alt="Flux schema" width="30%" height="30%">
+<img src="./images/flux_schema.png" alt="Flux schema" width="40%" height="40%">
 
 Geos schema:
 
-<img src="./images/geos_schema.png" alt="Geos schema" width="30%" height="30%">
+<img src="./images/geos_schema.png" alt="Geos schema" width="40%" height="40%">
 
 ### Partitions
 
@@ -138,6 +138,24 @@ In dbt, given the cities table, the raw flux and geos tables I perform an inner 
 
 
 ## Dashboard preview
+
+**Time series**
+
+<p align="center">
+<img src="./images/timeseries.png" alt="timeseries" width="80%" height="80%">
+</p>
+
+**Barchart**
+
+<p align="center">
+<img src="./images/barchart.png" alt="barchart" width="80%" height="80%">
+</p>
+
+**Fillmap**
+<p align="center">
+<img src="./images/heatmap.png" alt="filledmap" width="80%" height="80%">
+</p>
+
 
 ## Replication steps
 
