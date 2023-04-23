@@ -239,9 +239,23 @@ Finally, we should install the dependencies specified in [requirements.txt](./re
 
 ### Deploy and run flows
 
-Start the prefect server:
+1. Start the prefect server:
 
         prefect orion start
+
+2. Start a prefect agent to execute the flows:
+
+        prefect agent start -q 'default'
+
+3. Apply the deployments:
+
+        Make apply_deployments
+
+This command will apply 4 already generated flows:
+
+        - 
+
+
 
 
 
