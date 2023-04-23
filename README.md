@@ -13,6 +13,7 @@ The dashboard provides the following visualizations:
 - Time series charts showing the variations of several climate and solar irradiance parameters for a selected region in a selected time frame.
 - A bar chart visualization of the top months by precipitations, temperature or solar radiation in a specific region.
 - A pivot table that shows time trends of a specific parameter and a selected group of cities. Useful for comparing the trends between different regions.
+- A filled map filtered by country and datetime with points colored according to a selected parameter.
 
 Such visualizations can aid in decision-making processes related to renewable energy and sustainable building development.
 
@@ -27,7 +28,7 @@ I make use of the following technologies:
 - Self-hosted Prefect core to manage and monitor the workflow.
 - Looker as the dashboard for end-user for visualization
 - Makefile
-- Poetry for managing python dependencies
+- Anaconda for managing python dependencies
 
 ## Data Pipeline Architecture and workflow
 
@@ -68,16 +69,17 @@ Prefect is used for data orchestrations and consist of multiple flows and deploy
 
     It downloads data from GCS for a specific date. Once loaded, the data is transformed. The transformation consist of selecting the parameters of interest from the parquet data and creating a new dt column computed by truncating the timestamp to a monthly frequency. This last step is useful when executing queries that require referencing the monthly part of the timestamp as the data in bigquery is partitioned by month.
 
-    After the flow transforms the data, a following task is to update the BigQuery table with the new data for the currentling executing timestamp.
+    After the flow transforms the data, a following task appends the new data the BigQuery table.
 
 - Initialize BigQuery tables Flow:
 
-    It creates two partitioned tables: `flux_table_partitioned` to store solar irradiance related metrics and `geos_table_partitioned` to store meteorological related data. 
+    It creates two partitioned tables: `flux_table_partitioned` to store solar irradiance related metrics and `geos_table_partitioned` to store meteorological related data. Should be executed only once.
 
 - Upload cities table Flow
 
     It simply uploads the city table to BigQuery. Only need to be executed once.
 
+In addition to the flows that run on a specific date, I created flows that can be executed to load historical data by providing a start date and an end date.
 I included default deployments for each of the flows. They can be easily applied using the [Makefile](./Makefile). Check the replication steps for more information.
 
 ### Dbt
@@ -86,7 +88,7 @@ Dbt is used for the modelling part. The data is read from bigQuery and different
 
 ### Data visualization
 
-Looker is used for the visualizations. It uses the data models in bigQuery created by a dbt Job.
+Looker is used for the visualizations. It uses the data models in BigQuery created by a dbt Job.
 
 ## Data sources and Data modelling
 
@@ -132,7 +134,7 @@ Both raw tables are partitioned by the time column truncated by month [See creat
 
 ### Dbt modelling
 
-Instead of querying and visualizing of all datapoints in the global grid, it is more practical to limit the datapoints that are close to a city or region of interest. In order to achieve this, I added a new table for `cities`. It contains information about all cities of the world with their coordinates. As it is a samall file, I include it as a csv in this repo and can be accessed [here](./worldcities.csv).
+Instead of querying and visualizing of all datapoints in the global grid, it is more practical to limit the datapoints that are close to a city or region of interest. In order to achieve this, I added a new table for `cities`. It contains information about all cities of the world with their coordinates. As it is a small file, I include it as a csv in this repo and can be accessed [here](./worldcities.csv).
 
 In dbt, given the cities table, the raw flux and geos tables I perform an inner [spatial join](./dbt_nasa_power/models/staging/city_flux_model.sql) with the flux and geos tables separately to create two new tables which contain data from the cities joint with solar irradiance and meteorological measurements. The resulting models are a time series for each city and a set of metrics.  
 
