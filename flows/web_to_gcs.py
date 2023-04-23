@@ -4,6 +4,7 @@ import numpy as np
 import logging
 import pandas as pd
 from prefect import flow
+from datetime import datetime
 from common import DataType, extract_data, write_to_gcs, clean_files
 
 logger = logging.getLogger("root")
@@ -49,16 +50,14 @@ def web_to_gcs_data_range_flow(start_date, end_date):
 
 @flow(log_prints=True)
 def web_to_gcs_flow(date):
+    if date is None:
+        date = datetime.today().strftime('%Y-%m-%d')
+
     web2gcs_flux_flow(date)
     web2gcs_geos_flow(date)
 
 if __name__ == "__main__":
 
-    ## run single flow
-    # dt = "2022-05-08"
-    # ts = pd.to_datetime(dt, format='%Y-%m-%d')
-    # run_flux_flow(ts)
-
     start = "2022-01-02"
     end = "2022-01-05"
-    web_to_gcs_flow(start, end)
+    web_to_gcs_data_range_flow(start, end)

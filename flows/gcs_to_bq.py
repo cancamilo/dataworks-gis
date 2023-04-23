@@ -56,4 +56,4 @@ def gcs_to_bq_flow(date):
 if __name__ == "__main__":
     start = "2022-01-02"
     end = "2022-01-05"
-    gcs_to_bq_flow(start, end)
+    gcs_to_bq_data_range_flow(start, end)

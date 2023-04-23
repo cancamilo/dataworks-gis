@@ -3,7 +3,7 @@
 ###
 name: web to gcs data range ETL
 description: null
-version: a6e455c9b4fb9c0b6a55cb612507eecb
+version: ff0f9d2854745e04ddc26b29ba0f4fd8
 # The work queue that will handle this deployment's runs
 work_queue_name: default
 tags: []

@@ -3,7 +3,7 @@
 ###
 name: gcs to bq daily range ETL
 description: null
-version: e0f3e13bc86fa43e90c2d81364700fe6
+version: bed13404cdd1ff538122dad7e2d003fa
 # The work queue that will handle this deployment's runs
 work_queue_name: default
 tags: []
