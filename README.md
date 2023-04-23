@@ -173,19 +173,15 @@ You can copy your generated key as:
 
         cat ~/.ssh/gcp.pub | pbcopy
 
-3. Create an VM instance with the following minmum specifications: 4 vCPUs and 16GB RAM and a boot disk of minimum 30GB. For operating system choose a recent stable Ubuntu release. Alternatively you can also use the following gcp command to create a vm instance:
+3. Create an VM instance with the following minmum specifications: 4 vCPUs and 16GB RAM and a boot disk of minimum 30GB. For operating system choose a recent stable Ubuntu release. Alternatively you can also use the following gcp command to create a vm instance.
 
 4. Ssh to the created instance. This can be done with the ssh command or using the gcloud command line tool. For the last option, make sure that you have logged in with the correct service account and have the required permissions. See [the make file](./Makefile) for help with the commands.
 
-5. On the virtual machine command line, download and install anaconda and docker:
+5. On the virtual machine command line, download and install anaconda.
 
         wget https://repo.anaconda.com/archive/Anaconda3-2023.03-Linux-x86_64.sh
 
         bash Anaconda3-2023.03-Linux-x86_64.sh
-
-        sudo apt-get update
-
-        sudo apt-get install docker.io
 
 6. Clone this repository in the virtual machine:
 
@@ -205,7 +201,7 @@ You can copy your generated key as:
 
 9. Configure your google account:
 
-            export GOOGLE_APPLICATION_CREDENTIALS=~/.gc/{your_key}.json
+            export GOOGLE_APPLICATION_CREDENTIALS={path_to_your_key}.json
 
             gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS
 
@@ -249,8 +245,8 @@ Finally, we should install the dependencies specified in [requirements.txt](./re
 
 3. In the prefect UI, install the following blocks:
 
-   - gcs-credentials: add your service account key in the service account info
-   - gcs-bucket: Name the block `gcs-connector`, use `nasa_power_datalake` as the bucket name and as credentials choose the previously created gcs-credentials.
+   - GcsCredentials: add your service account key in the service account info
+   - GcsBucket: Name the block `gcs-connector`, use `nasa_power_datalake` as the bucket name and as credentials choose the previously created gcs-credentials.
    - BigQueryWarehouse: name it bq-block and connect to previously stored credentials.
 
    Note: You could name the blocks as desired, but then the namings in the flows should be changed to adapt to your names.
@@ -273,7 +269,7 @@ Finally, we should install the dependencies specified in [requirements.txt](./re
         parameters:
         - start_date(optional): If not provided it will execute for the current day.
 
-        frequency: Runs everyday at 6 am.
+        frequency: Runs everyday at 7 am.
 
     - web_to_gcs_data_range_flow (optional): 
 
@@ -293,7 +289,7 @@ If all you need is to start acquiring data everyday, it is enough to just apply 
 
 Up until this point, we have our date available in the desired time range in the GCS bucket and in the partitioned BigQuery tables. Now we can proceed to create the models from our data that will be subsequently used for visualizations in Google looker.
 
-As a first step we should create a dbt cloud account and connect it to our BigQuery account. To do so you can follow this [excelent guide](https://github.com/ziritrion/dataeng-zoomcamp/blob/main/notes/4_analytics.md#setting-up-dbt). It is also neccesary to configure our dbt cloud account to connect to the github where the repository lives. In this repo, the dbt relevant project files are in the `dbt_nasa_power` folder. 
+As a first step we should create a dbt cloud account and connect it to our BigQuery account. To do so you can follow this [excellent guide](https://github.com/ziritrion/dataeng-zoomcamp/blob/main/notes/4_analytics.md#setting-up-dbt). It is also neccesary to configure our dbt cloud account to connect to the github where the repository lives. In this repo, the dbt relevant project files are in the `dbt_nasa_power` folder. 
 
 Inside our dbt project in the cloud, we proceed configure a `Job`. It should run in a production environment that points to our `production` dataset in BigQuery. The `Job` should be configured to execute the following steps:
 
@@ -332,3 +328,5 @@ data prepared for visualization.
 - Simplify the configuration of the VM. A lot of the steps could be packed into a bash script.
 
 - Dockerizing the prefect server and agents would make the workflows easier to reproduce under the same conditions and allow scaling of the ETLs if deployed on kubernetes or similar technologies.
+
+- Use Spark for processing the data. For example, use the ML Spark capabilities for time series forecasting.
