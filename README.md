@@ -104,6 +104,8 @@ The NASA Power data is consists of several [sources](https://power.larc.nasa.gov
         - CLRSKY_SFC_SW_DWN: Termal infrarred irradiance under clear sky conditions. Shortwave downward.
         - ALLSKY_SFC_SW_DWN: Termal infrarred irradiance under all sky conditions. Shortwave downward.
 
+      All above units in W/m^2
+
 
 2. NASA's Goddard Earth Observing System (GEOS): Provides meteorological data. Types of observations include land surface observations of surface pressure, ocean surface observations of sea level pressure and winds, sea level winds inferred from backscatter returns from space-borne radars, conventional upper-air data from rawinsondes (e.g., height, temperature, wind and moisture), and (6) remotely sensed information from satellites. The data is updated in S3 with a daily frequency.
 
@@ -130,7 +132,7 @@ Geos schema:
 
 ### Partitions
 
-Both raw tables are partitioned by the time column truncated by month [See creation query](./flows/queries/flux_table_creation.sql). In this way, common operations such as groping or filtering by a specific datetime are optimized. This has an important impact in the models calculated subsequently with dbt specially when computing the monthyl average of some parameters
+Both raw tables are partitioned by the time column truncated by month. [See creation query](./flows/queries/flux_table_creation.sql). In this way, common operations such as grouping or filtering by a specific datetime are optimized. This has an important impact in the models calculated subsequently with dbt specially when computing the monthly average of some parameters.
 
 ### Dbt modelling
 
@@ -221,7 +223,7 @@ You can copy your generated key as:
 
 8. Transfer your previously generated service account key to the VM using ftp. 
 
-9. Configure your google account:
+9. Configure your Google account:
 
             export GOOGLE_APPLICATION_CREDENTIALS={path_to_your_key}.json
 
@@ -305,13 +307,13 @@ Finally, we should install the dependencies specified in [requirements.txt](./re
         - start_date
         - end_date
 
-If all you need is to start acquiring data everyday, it is enough to just apply the deployments and the ETL will start populating the gcp bucket and the BigQuery table. If you want to acquire the historical data, you should first execute `web_to_gcs_data_range_flow` in the desired time range in order to populate the bucket and then execute `gcs_to_bq_data_range_flow`in the same time range to read from the bucket and upload the data to the partitioned tables in BigQuery. 
+If all you need is to start acquiring data every day, it is enough to just apply the deployments and the ETL will start populating the gcp bucket and the BigQuery table. If you want to acquire the historical data, you should first execute `web_to_gcs_data_range_flow` in the desired time range in order to populate the bucket and then execute `gcs_to_bq_data_range_flow`in the same time range to read from the bucket and upload the data to the partitioned tables in BigQuery. 
 
 ### Dbt Job Run
 
 Up until this point, we have our date available in the desired time range in the GCS bucket and in the partitioned BigQuery tables. Now we can proceed to create the models from our data that will be subsequently used for visualizations in Google looker.
 
-As a first step we should create a dbt cloud account and connect it to our BigQuery account. To do so you can follow this [excellent guide](https://github.com/ziritrion/dataeng-zoomcamp/blob/main/notes/4_analytics.md#setting-up-dbt). It is also neccesary to configure our dbt cloud account to connect to the github where the repository lives. In this repo, the dbt relevant project files are in the `dbt_nasa_power` folder. 
+As a first step we should create a dbt cloud account and connect it to our BigQuery account. To do so you can follow this [excellent guide](https://github.com/ziritrion/dataeng-zoomcamp/blob/main/notes/4_analytics.md#setting-up-dbt). It is also neccesary to configure our dbt cloud account to connect to the GitHub where the repository lives. In this repo, the dbt relevant project files are in the `dbt_nasa_power` folder. 
 
 Inside our dbt project in the cloud, we proceed configure a `Job`. It should run in a production environment that points to our `production` dataset in BigQuery. The `Job` should be configured to execute the following steps:
 
@@ -329,7 +331,7 @@ Once this job finished succesfuly, we should have three new tables:
 - city_geos_model: cities joint with geos metrics.
 - city_monthly_agg: monthly aggregations for every city for selected parameters.
 
-data prepared for visualization.
+From the above tables, we are prepared to create the visualization.
 
 ### Google Looker Studio
 
@@ -339,16 +341,18 @@ data prepared for visualization.
 
 3. Time series: you can create time series plots to visualize trends of one or multiple meteorology or solar irradiance parameters for a selected city. For the time series, the column `time` should be used as dimension and then choose the average aggregation for at least one of the metric.
 
-4. Bar charts: The `city_monthly_agg` contains selected metrics aggregated by month, this data can be plotted in a bar chart choosing the dimension `month_name`. You can also add multiple parameters but unfortunately there does not seem to be an easy way to add a y axis to the right in order to make easier the visualization of parameters in diferent scales.
+4. Bar charts: The `city_monthly_agg` contains selected metrics aggregated by month, this data can be plotted in a bar chart choosing the dimension `month_name`. You can also add multiple parameters but unfortunately there does not seem to be an easy way to add a y-axis to the right in order to make easier the visualization of parameters in diferent scales.
 
 5. Pivot Tables: We can extract interesting insights by using pivot tables. In this case I have created a pivot table with the row dimension `time` and the clolumn dimension `city_name`. You can then select any metric and this table will show the trend overtime for several cities.
 
 ## Future work
 
-- Include new data sources with more parameters. The NASA Power datalake provides measurements that starts from the year 1984. In this work I have considered only a subset of the data starting from 2022 on.
+- Include new data sources with more parameters. The NASA Power datalake provides measurements that start from the year 1984. In this work I have considered only a subset of the data starting from 2022 on. 
 
 - Simplify the configuration of the VM. A lot of the steps could be packed into a bash script.
 
 - Dockerizing the prefect server and agents would make the workflows easier to reproduce under the same conditions and allow scaling of the ETLs if deployed on kubernetes or similar technologies.
 
 - Use Spark for processing the data. For example, use the ML Spark capabilities for time series forecasting.
+
+- Use a tool that is better suited for map visualizations. Currently, the map view can be slow if the data is not properly filtered by location.
